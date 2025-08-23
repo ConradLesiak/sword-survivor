@@ -5,6 +5,7 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -61,12 +62,22 @@ public class GameScreen implements Screen {
 
     private final GlyphLayout layout = new GlyphLayout();
 
+    private Texture texPlayer;
+    private Texture texEnemy;
+    private Texture texSword;
+
+
     public GameScreen(SwordSurvivorGame game) {
         this.game = game;
         this.batch = game.batch;
-        viewport = new FitViewport(SwordSurvivorGame.WORLD_WIDTH, SwordSurvivorGame.WORLD_HEIGHT);
+        // viewport
+        viewport = new FitViewport(SwordSurvivorGame.VIEW_WIDTH, SwordSurvivorGame.VIEW_HEIGHT);
         stage = new Stage(viewport, batch);
         Gdx.input.setInputProcessor(stage);
+
+        texPlayer = new Texture(Gdx.files.internal("player.png"));
+        texEnemy  = new Texture(Gdx.files.internal("enemy.png"));
+        texSword  = new Texture(Gdx.files.internal("sword.png"));
 
         // Pause menu
         pauseMenu = new PauseMenu(game.font, new PauseMenu.Listener() {
@@ -249,24 +260,6 @@ public class GameScreen implements Screen {
         shapes.setColor(0.10f, 0.12f, 0.14f, 1f);
         shapes.rect(0, 0, SwordSurvivorGame.WORLD_WIDTH, SwordSurvivorGame.WORLD_HEIGHT);
 
-        // Player (green)
-        shapes.setColor(Color.GREEN);
-        RenderUtils.rectCentered(shapes, player.pos.x, player.pos.y, player.size, player.size);
-
-        // Sword (gray) if swinging
-        if (player.swing.active) {
-            shapes.setColor(Color.GRAY);
-            Vector2 p0 = player.pos;
-            Vector2 p1 = com.rgs.swordsurvivor.combat.CombatUtils.endOfSword(player);
-            shapes.rectLine(p0, p1, player.swordThickness);
-        }
-
-        // Enemies (red)
-        shapes.setColor(Color.RED);
-        for (Enemy e : enemies) {
-            RenderUtils.rectCentered(shapes, e.pos.x, e.pos.y, e.size, e.size);
-        }
-
         // Orbs (yellow)
         shapes.setColor(Color.YELLOW);
         for (Orb o : orbs) {
@@ -274,6 +267,61 @@ public class GameScreen implements Screen {
         }
 
         shapes.end();
+
+        // Switch to batch for textures
+        batch.begin();
+
+        // Player
+        if (!player.facingLeft) {
+            batch.draw(texPlayer,
+                player.pos.x - player.size/2f,
+                player.pos.y - player.size/2f,
+                player.size, player.size);
+        } else {
+            batch.draw(texPlayer,
+                player.pos.x + player.size/2f, // start from right side
+                player.pos.y - player.size/2f,
+                -player.size, player.size);   // negative width = flip
+        }
+
+
+        // Sword
+        if (player.swing.active) {
+            Vector2 p0 = player.pos;
+            Vector2 p1 = CombatUtils.endOfSword(player);
+            float dx = p1.x - p0.x;
+            float dy = p1.y - p0.y;
+            float length = (float)Math.sqrt(dx*dx + dy*dy);
+            float angle = (float)Math.toDegrees(Math.atan2(dy, dx));
+
+            batch.draw(texSword,
+                p0.x, p0.y - player.swordThickness/2f, // lower-left
+                0, player.swordThickness/2f,           // origin of rotation
+                length, player.swordThickness,         // width = length of sword, height = thickness
+                1f, 1f,                                // scale
+                angle,                                 // rotation
+                0, 0,
+                texSword.getWidth(), texSword.getHeight(),
+                false, false);
+        }
+
+        // Enemies
+        for (Enemy e : enemies) {
+            if (!e.facingLeft) {
+                batch.draw(texEnemy,
+                    e.pos.x - e.size/2f,
+                    e.pos.y - e.size/2f,
+                    e.size, e.size);
+            } else {
+                batch.draw(texEnemy,
+                    e.pos.x + e.size/2f,
+                    e.pos.y - e.size/2f,
+                    -e.size, e.size);
+            }
+        }
+
+
+        batch.end();
     }
 
     private void drawHUD() {
@@ -432,6 +480,9 @@ public class GameScreen implements Screen {
     @Override public void resume() {}
     @Override public void hide() {}
     @Override public void dispose() {
+        texPlayer.dispose();
+        texEnemy.dispose();
+        texSword.dispose();
         shapes.dispose();
         stage.dispose();
         pauseMenu.dispose();

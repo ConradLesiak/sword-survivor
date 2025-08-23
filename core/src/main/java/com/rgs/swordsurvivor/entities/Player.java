@@ -10,14 +10,14 @@ import com.rgs.swordsurvivor.combat.Swing;
 public class Player {
     public final Vector2 pos;
 
-    public float size = 22f;
+    public float size = 64f;
     public int hp = 10, maxHp = 10;
     public float speed = 180f;
 
     public int damage = 2;
     public float attackCooldown = 0.6f;
-    public float swordReach = 90f;
-    public float swordThickness = 14f;
+    public float swordReach = 180f;
+    public float swordThickness = 28f;
     public float swingSweep = 120f;
     public float swingDuration = 0.20f;
 
@@ -32,21 +32,22 @@ public class Player {
     public float hurtCooldown = 0f;
     public final Swing swing = new Swing();
 
-    public Player(Vector2 start) { this.pos = start; }
+    public boolean facingLeft = false;
+
+    public Player(Vector2 start) {this.pos = start; }
 
     public void update(float dt, Vector2 mouseWorld) {
         // movement
-        float dx = 0, dy = 0;
-        if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT))  dx -= 1;
-        if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) dx += 1;
-        if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP))    dy += 1;
-        if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN))  dy -= 1;
+        float moveX = 0, moveY = 0;
+        if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT))  moveX -= 1;
+        if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) moveX += 1;
+        if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP))    moveY += 1;
+        if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN))  moveY -= 1;
 
-        if (dx != 0 || dy != 0) {
-            Vector2 m = new Vector2(dx, dy).nor().scl(speed * dt);
-            pos.add(m);
-            clampToWorld();
-        }
+        if (moveX < 0) facingLeft = true;
+        else if (moveX > 0) facingLeft = false;
+
+        pos.add(moveX * speed * dt, moveY * speed * dt);
 
         if (hurtCooldown > 0) hurtCooldown -= dt;
 

@@ -27,10 +27,10 @@ public class MenuScreen implements Screen {
 
     public MenuScreen(SwordSurvivorGame game) {
         this.game = game;
-        viewport = new FitViewport(SwordSurvivorGame.WORLD_WIDTH, SwordSurvivorGame.WORLD_HEIGHT);
+        // IMPORTANT: use VIEW_* here (not WORLD_*)
+        viewport = new FitViewport(SwordSurvivorGame.VIEW_WIDTH, SwordSurvivorGame.VIEW_HEIGHT);
         stage = new Stage(viewport, game.batch);
         Gdx.input.setInputProcessor(stage);
-
         buildUI();
     }
 
@@ -56,9 +56,9 @@ public class MenuScreen implements Screen {
         startLbl.setAlignment(Align.center);
         startLbl.setFontScale(1.05f);
 
-        // --- background panel ---
+        // Background color panel
         Pixmap pm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pm.setColor(0.08f, 0.09f, 0.12f, 1f); // dark gray-blue background
+        pm.setColor(0.08f, 0.09f, 0.12f, 1f);
         pm.fill();
         bgTexture = new Texture(pm);
         pm.dispose();
@@ -66,7 +66,7 @@ public class MenuScreen implements Screen {
 
         Table root = new Table();
         root.setFillParent(true);
-        root.setBackground(bgDrawable); // background panel
+        root.setBackground(bgDrawable);
         stage.addActor(root);
 
         // Layout
@@ -75,7 +75,7 @@ public class MenuScreen implements Screen {
         top.add(highscoreLbl).padTop(16f);
         root.add(top).expandX().top().padTop(20f).row();
 
-        root.add().expand().row(); // spacer
+        root.add().expand().row();
 
         Table controls = new Table();
         controls.add(controls1).row();
@@ -85,7 +85,7 @@ public class MenuScreen implements Screen {
 
         root.add(startLbl).expandX().bottom().padBottom(40f);
 
-        // click anywhere to start
+        // Click anywhere to start
         root.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
                 game.setScreen(new GameScreen(game));
@@ -94,7 +94,6 @@ public class MenuScreen implements Screen {
     }
 
     @Override public void show() {}
-
     @Override
     public void render(float delta) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) ||
@@ -102,7 +101,6 @@ public class MenuScreen implements Screen {
             game.setScreen(new GameScreen(game));
             return;
         }
-
         stage.act(delta);
         stage.draw();
     }
@@ -111,8 +109,5 @@ public class MenuScreen implements Screen {
     @Override public void pause() {}
     @Override public void resume() {}
     @Override public void hide() {}
-    @Override public void dispose() {
-        stage.dispose();
-        bgTexture.dispose();
-    }
+    @Override public void dispose() { stage.dispose(); bgTexture.dispose(); }
 }

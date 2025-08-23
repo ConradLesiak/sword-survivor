@@ -9,8 +9,13 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.rgs.swordsurvivor.screens.MenuScreen;
 
 public class SwordSurvivorGame extends Game {
-    public static final int WORLD_WIDTH = 800;
-    public static final int WORLD_HEIGHT = 600;
+    // Viewport resolution
+    public static final int VIEW_WIDTH = 800;
+    public static final int VIEW_HEIGHT = 600;
+
+    // Actual playable world size
+    public static final int WORLD_WIDTH = 1600;
+    public static final int WORLD_HEIGHT = 1200;
 
     public SpriteBatch batch;
     public BitmapFont font;
