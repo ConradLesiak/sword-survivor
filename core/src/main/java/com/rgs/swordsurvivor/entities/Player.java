@@ -34,6 +34,8 @@ public class Player {
 
     public boolean facingLeft = false;
 
+    public float hurtTimer = 0f; // seconds remaining for red flash
+
     public Player(Vector2 start) {this.pos = start; }
 
     public void update(float dt, Vector2 mouseWorld) {
@@ -62,10 +64,13 @@ public class Player {
 
         if (swing.active) {
             swing.elapsed += dt;
-            float t = MathUtils.clamp(swing.elapsed / swing.duration, 0f, 1f);
-            swing.currentAngleDeg = swing.startAngleDeg + t * swing.totalSweepDeg;
+            float t = com.badlogic.gdx.math.MathUtils.clamp(swing.elapsed / swing.duration, 0f, 1f);
+            // simple linear interpolation on already-unwrapped angles
+            swing.currentAngleDeg = swing.startAngleDeg + (swing.endAngleDeg - swing.startAngleDeg) * t;
             if (swing.elapsed >= swing.duration) swing.active = false;
         }
+
+        if (hurtTimer > 0f) hurtTimer -= dt;
     }
 
     private void startSwing(float aimDeg) {
@@ -73,10 +78,32 @@ public class Player {
         swing.active = true;
         swing.elapsed = 0f;
         swing.duration = swingDuration;
-        swing.totalSweepDeg = swingSweep;
-        swing.startAngleDeg = aimDeg - swingSweep / 2f;
+
+        float half = Math.abs(swingSweep) * 0.5f;
+
+        if (!facingLeft) {
+            // FACING RIGHT: clockwise (top -> bottom), strictly decreasing angles
+            swing.startAngleDeg = aimDeg + half;  // top
+            swing.endAngleDeg   = aimDeg - half;  // bottom
+
+            // unwrap so end <= start (decreasing)
+            while (swing.endAngleDeg > swing.startAngleDeg) {
+                swing.endAngleDeg -= 360f;
+            }
+        } else {
+            // FACING LEFT: counter-clockwise (bottom -> top), strictly increasing angles
+            swing.startAngleDeg = aimDeg - half;  // bottom
+            swing.endAngleDeg   = aimDeg + half;  // top
+
+            // unwrap so end >= start (increasing)
+            while (swing.endAngleDeg < swing.startAngleDeg) {
+                swing.endAngleDeg += 360f;
+            }
+        }
+
         swing.currentAngleDeg = swing.startAngleDeg;
     }
+
 
     private void clampToWorld() {
         pos.x = MathUtils.clamp(pos.x, size/2f, SwordSurvivorGame.WORLD_WIDTH - size/2f);
@@ -90,10 +117,8 @@ public class Player {
         while (xp >= xpToNext) {
             xp -= xpToNext;
             level++;
-            // Recalculate next threshold
             xpToNext = Math.max(5, Math.round(xpToNext * 1.25f));
-            // Fully heal on level-up
-            hp = maxHp;
+            // REMOVE any hp = maxHp here
             leveled = true;
         }
         return leveled;

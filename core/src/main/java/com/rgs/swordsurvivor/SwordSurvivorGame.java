@@ -2,53 +2,66 @@ package com.rgs.swordsurvivor;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Preferences;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.rgs.swordsurvivor.screens.MenuScreen;
 
 public class SwordSurvivorGame extends Game {
-    // Viewport resolution
     public static final int VIEW_WIDTH = 800;
     public static final int VIEW_HEIGHT = 600;
-
-    // Actual playable world size
     public static final int WORLD_WIDTH = 1600;
     public static final int WORLD_HEIGHT = 1200;
 
     public SpriteBatch batch;
     public BitmapFont font;
-    private Preferences prefs;
 
-    @Override
-    public void create() {
+    // --- Audio ---
+    public Music musicMenu;     // music1.mp3
+    public Music musicGame;     // music2.mp3
+    public Sound sfxPlayerHit;  // hit1.mp3
+    public Sound sfxEnemyHit;   // hit2.mp3
+    public Sound sfxPickup;     // pickup.mp3
+    public Sound sfxLevel;      // level.mp3
+
+    private int highscoreKills = 0;
+
+    @Override public void create() {
         batch = new SpriteBatch();
         font = new BitmapFont();
-        font = new BitmapFont();
-        font.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
-        prefs = Gdx.app.getPreferences("SwordSurvivorPreferences");
-        if (!prefs.contains("highscoreKills")) {
-            prefs.putInteger("highscoreKills", 0).flush();
-        }
-        setScreen(new MenuScreen(this));
+        // keep text sharp if you used this earlier
+        font.getRegion().getTexture().setFilter(
+            com.badlogic.gdx.graphics.Texture.TextureFilter.Nearest,
+            com.badlogic.gdx.graphics.Texture.TextureFilter.Nearest);
+
+        // Load audio once
+        musicMenu = Gdx.audio.newMusic(Gdx.files.internal("music1.mp3"));
+        musicGame = Gdx.audio.newMusic(Gdx.files.internal("music2.mp3"));
+        musicMenu.setLooping(true);
+        musicGame.setLooping(true);
+
+        sfxPlayerHit = Gdx.audio.newSound(Gdx.files.internal("hit1.mp3"));
+        sfxEnemyHit  = Gdx.audio.newSound(Gdx.files.internal("hit2.mp3"));
+        sfxPickup    = Gdx.audio.newSound(Gdx.files.internal("pickup.mp3"));
+        sfxLevel     = Gdx.audio.newSound(Gdx.files.internal("level.mp3"));
+
+        setScreen(new com.rgs.swordsurvivor.screens.MenuScreen(this));
     }
 
-    public int getHighscoreKills() {
-        return prefs.getInteger("highscoreKills", 0);
-    }
+    public int getHighscoreKills() { return highscoreKills; }
+    public void maybeSetHighscore(int kills) { highscoreKills = Math.max(highscoreKills, kills); }
 
-    public void maybeSetHighscore(int kills) {
-        int cur = getHighscoreKills();
-        if (kills > cur) {
-            prefs.putInteger("highscoreKills", kills).flush();
-        }
-    }
-
-    @Override
-    public void dispose() {
-        if (getScreen() != null) getScreen().dispose();
+    @Override public void dispose() {
+        super.dispose();
         batch.dispose();
         font.dispose();
+
+        // Dispose audio
+        musicMenu.dispose();
+        musicGame.dispose();
+        sfxPlayerHit.dispose();
+        sfxEnemyHit.dispose();
+        sfxPickup.dispose();
+        sfxLevel.dispose();
     }
 }

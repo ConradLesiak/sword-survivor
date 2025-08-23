@@ -12,6 +12,8 @@ public class Enemy {
 
     public boolean facingLeft = false;
 
+    public float hurtTimer = 0f;
+
     public Enemy(Vector2 pos) { this.pos = pos; }
 
     public void update(float dt, Vector2 target) {
@@ -22,6 +24,8 @@ public class Enemy {
         }
         if (target.x < pos.x) facingLeft = true;
         else if (target.x > pos.x) facingLeft = false;
+
+        if (hurtTimer > 0f) hurtTimer -= dt;
     }
 
     public boolean collidesWithPlayer(Player p) {

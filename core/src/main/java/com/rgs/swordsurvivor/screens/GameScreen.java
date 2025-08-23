@@ -103,12 +103,23 @@ public class GameScreen implements Screen {
 
         lastAnnouncedWave = 0;
         // announce Wave 1
-        stage.addActor(new WaveBanner(game.font, "Wave 1!",
-            stage.getCamera().position.x, stage.getCamera().position.y, 1.25f));
+        stage.addActor(new com.rgs.swordsurvivor.ui.WaveBanner(
+            game.font,
+            "Wave 1!",
+            player.pos,             // Vector2 (follows player)
+            player.size + 32f,      // offset above head
+            1.25f));                // duration
         lastAnnouncedWave = 1;
     }
 
-    @Override public void show() {}
+    @Override public void show() {
+        // start gameplay music (used in gameplay & pause)
+        if (!game.musicGame.isPlaying()) {
+            game.musicGame.play();
+        }
+        // stop menu music if still playing
+        if (game.musicMenu.isPlaying()) game.musicMenu.stop();
+    }
 
     @Override
     public void render(float delta) {
@@ -144,38 +155,31 @@ public class GameScreen implements Screen {
     }
 
     private void handleGlobalInput() {
-        // ESCAPE key handling
-        if (!levelUpPending && !gameOver && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            if (!paused) {
-                // playing → open pause menu
-                togglePause(true);
-            } else {
-                // already paused → go back to main menu
-                game.setScreen(new MenuScreen(game));
-            }
-            return; // consume ESCAPE completely
+        // --- GAME OVER ---
+        if (gameOver) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) { init(); return; }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { game.setScreen(new MenuScreen(game)); return; }
+            return; // don't process anything else when game over
         }
 
-        // P toggles pause (only when not paused)
-        if (!levelUpPending && !gameOver && Gdx.input.isKeyJustPressed(Input.Keys.P)) {
-            togglePause(!paused);
-        }
+        // --- Level-up overlay: input handled elsewhere ---
+        if (levelUpPending) return;
 
+        // --- PAUSED: Esc = Main Menu, P = Resume, R = Restart ---
         if (paused) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-                init();
-                togglePause(false);
-            }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { game.setScreen(new MenuScreen(game)); return; }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) { init(); togglePause(false); return; }
+            if (Gdx.input.isKeyJustPressed(Input.Keys.P)) { togglePause(false); return; }
+            return; // consume inputs while paused
+        }
+
+        // --- PLAYING: Esc or P opens pause menu ---
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) ||
+            Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+            togglePause(true);
             return;
         }
-
-        // while NOT paused and not in overlays
-        if (gameOver && Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-            init();
-        }
     }
-
-
 
     private void togglePause(boolean makePaused) {
         paused = makePaused;
@@ -190,8 +194,12 @@ public class GameScreen implements Screen {
         spawner.update(dt);
         int currentWave = spawner.getWave();
         if (currentWave > lastAnnouncedWave) {
-            stage.addActor(new WaveBanner(game.font, "Wave " + currentWave + "!",
-                stage.getCamera().position.x, stage.getCamera().position.y, 1.25f));
+            stage.addActor(new com.rgs.swordsurvivor.ui.WaveBanner(
+                game.font,
+                "Wave " + currentWave + "!",
+                player.pos,
+                player.size + 32f,
+                1.25f));
             lastAnnouncedWave = currentWave;
         }
         while (spawner.shouldSpawn()) {
@@ -211,7 +219,10 @@ public class GameScreen implements Screen {
             if (e.collidesWithPlayer(player)) {
                 if (player.hurtCooldown <= 0f) {
                     player.hp -= e.touchDamage;
+                    player.hurtTimer = 0.2f; // 0.2 seconds red flash
                     player.hurtCooldown = 0.6f;
+                    // SFX: player hurt
+                    game.sfxPlayerHit.play();
                     if (player.hp <= 0) {
                         gameOver = true;
                         game.maybeSetHighscore(kills);
@@ -223,7 +234,11 @@ public class GameScreen implements Screen {
             if (player.swing.active && CombatUtils.swordHitsEnemyThisFrame(player, e)) {
                 if (e.lastHitSwingId != player.swing.id) {
                     e.hp -= player.damage;
+                    e.hurtTimer = 0.2f;
                     e.lastHitSwingId = player.swing.id;
+
+                    // SFX: enemy hit
+                    game.sfxEnemyHit.play();
 
                     // Damage number
                     stage.addActor(new DamageText(game.font, String.valueOf(player.damage),
@@ -243,6 +258,8 @@ public class GameScreen implements Screen {
             Orb o = orbs.get(i);
             o.update(dt, player.pos, player.pickupRange);
             if (o.canPickup(player.pos, player.pickupRange)) {
+                // SFX: pickup
+                game.sfxPickup.play();
                 int xpGain = Math.round(o.value * player.xpGain);
                 if (player.gainXP(xpGain)) {
                     rollBoonChoices();
@@ -273,17 +290,18 @@ public class GameScreen implements Screen {
 
         // Player
         if (!player.facingLeft) {
+            batch.setColor(player.hurtTimer > 0f ? Color.RED : Color.WHITE);
             batch.draw(texPlayer,
                 player.pos.x - player.size/2f,
                 player.pos.y - player.size/2f,
                 player.size, player.size);
         } else {
+            batch.setColor(player.hurtTimer > 0f ? Color.RED : Color.WHITE);
             batch.draw(texPlayer,
-                player.pos.x + player.size/2f, // start from right side
+                player.pos.x + player.size/2f,
                 player.pos.y - player.size/2f,
-                -player.size, player.size);   // negative width = flip
+                -player.size, player.size);
         }
-
 
         // Sword
         if (player.swing.active) {
@@ -307,6 +325,7 @@ public class GameScreen implements Screen {
 
         // Enemies
         for (Enemy e : enemies) {
+            batch.setColor(e.hurtTimer > 0f ? Color.RED : Color.WHITE);
             if (!e.facingLeft) {
                 batch.draw(texEnemy,
                     e.pos.x - e.size/2f,
@@ -319,7 +338,7 @@ public class GameScreen implements Screen {
                     -e.size, e.size);
             }
         }
-
+        batch.setColor(Color.WHITE); // reset tint
 
         batch.end();
     }
@@ -417,6 +436,10 @@ public class GameScreen implements Screen {
 
         if (pick != -1) {
             boonChoices[pick].boon.apply(player);
+            // (Optional: play level-up here instead)
+            game.sfxLevel.play();
+            // Heal AFTER boon is applied (so Toughness etc. are included)
+            player.hp = player.maxHp;
             levelUpPending = false;
         }
     }

@@ -93,7 +93,15 @@ public class MenuScreen implements Screen {
         });
     }
 
-    @Override public void show() {}
+    @Override public void show() {
+        // start/ensure menu music
+        if (!game.musicMenu.isPlaying()) {
+            game.musicMenu.play();
+        }
+        // make sure gameplay music is off in menu
+        if (game.musicGame.isPlaying()) game.musicGame.stop();
+    }
+
     @Override
     public void render(float delta) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) ||
