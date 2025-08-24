@@ -11,101 +11,115 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Align;
-import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.rgs.swordsurvivor.SwordSurvivorGame;
 
 public class MenuScreen implements Screen {
     private final SwordSurvivorGame game;
-    private final FitViewport viewport;
+    private final ExtendViewport viewport;
     private final Stage stage;
 
-    private Texture bgTexture;
+    private Texture bgTex, btnUp, btnOver, btnDown, cardTex;
 
     public MenuScreen(SwordSurvivorGame game) {
         this.game = game;
-        // IMPORTANT: use VIEW_* here (not WORLD_*)
-        viewport = new FitViewport(SwordSurvivorGame.VIEW_WIDTH, SwordSurvivorGame.VIEW_HEIGHT);
+        viewport = new ExtendViewport(SwordSurvivorGame.VIEW_WIDTH, SwordSurvivorGame.VIEW_HEIGHT);
         stage = new Stage(viewport, game.batch);
         Gdx.input.setInputProcessor(stage);
         buildUI();
     }
 
     private void buildUI() {
-        LabelStyle style = new LabelStyle(game.font, Color.WHITE);
+        // --- background panel ---
+        bgTex = makeSolid(0.08f, 0.09f, 0.12f, 1f);
+        TextureRegionDrawable bg = new TextureRegionDrawable(new TextureRegion(bgTex));
 
-        Label titleLbl = new Label("Sword Survivor", style);
-        titleLbl.setAlignment(Align.center);
-        titleLbl.setFontScale(2.2f);
+        // --- card behind title/highscore (optional polish) ---
+        cardTex = makeSolid(0.12f, 0.14f, 0.18f, 1f);
+        TextureRegionDrawable card = new TextureRegionDrawable(new TextureRegion(cardTex));
 
-        Label highscoreLbl = new Label("High Score (kills): " + game.getHighscoreKills(), style);
-        highscoreLbl.setAlignment(Align.center);
-        highscoreLbl.setFontScale(1.1f);
+        // --- button visuals (no skin file needed) ---
+        btnUp   = makeSolid(0.18f, 0.22f, 0.28f, 1f);
+        btnOver = makeSolid(0.24f, 0.30f, 0.38f, 1f);
+        btnDown = makeSolid(0.14f, 0.16f, 0.20f, 1f);
+        TextButtonStyle btnStyle = new TextButtonStyle(
+            new TextureRegionDrawable(new TextureRegion(btnUp)),
+            new TextureRegionDrawable(new TextureRegion(btnDown)),
+            new TextureRegionDrawable(new TextureRegion(btnOver)),
+            game.font
+        );
 
-        Label controls1 = new Label("Move: WASD / Arrow Keys", style);
-        Label controls2 = new Label("Aim: Mouse  •  Auto-attacks toward cursor", style);
-        Label controls3 = new Label("Collect yellow orbs to level up; choose 1 of 3 boons.", style);
-        controls1.setAlignment(Align.center);
-        controls2.setAlignment(Align.center);
-        controls3.setAlignment(Align.center);
+        LabelStyle labelStyle = new LabelStyle(game.font, Color.WHITE);
 
-        Label startLbl = new Label("Click / Enter / Space to Start", style);
-        startLbl.setAlignment(Align.center);
-        startLbl.setFontScale(1.05f);
+        // --- widgets ---
+        Label title = new Label("Sword Survivor", labelStyle);
+        title.setAlignment(Align.center);
+        title.setFontScale(2.2f);
 
-        // Background color panel
-        Pixmap pm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pm.setColor(0.08f, 0.09f, 0.12f, 1f);
-        pm.fill();
-        bgTexture = new Texture(pm);
-        pm.dispose();
-        TextureRegionDrawable bgDrawable = new TextureRegionDrawable(new TextureRegion(bgTexture));
+        Label highscore = new Label("High Score (kills): " + game.getHighscoreKills(), labelStyle);
+        highscore.setAlignment(Align.center);
+        highscore.setFontScale(1.1f);
 
+        TextButton playBtn = new TextButton("Play", btnStyle);
+        TextButton quitBtn = new TextButton("Quit", btnStyle);
+
+        // --- layout ---
         Table root = new Table();
         root.setFillParent(true);
-        root.setBackground(bgDrawable);
+        root.setBackground(bg);
         stage.addActor(root);
 
-        // Layout
-        Table top = new Table();
-        top.add(titleLbl).padTop(30f).row();
-        top.add(highscoreLbl).padTop(16f);
-        root.add(top).expandX().top().padTop(20f).row();
+        Table header = new Table();
+        header.setBackground(card);
+        header.pad(18f).defaults().pad(6f);
+        header.add(title).row();
+        header.add(highscore);
 
+        root.add(header).expandX().top().padTop(40f).width(Math.min(520f, viewport.getWorldWidth() - 40f)).row();
         root.add().expand().row();
 
-        Table controls = new Table();
-        controls.add(controls1).row();
-        controls.add(controls2).padTop(6f).row();
-        controls.add(controls3).padTop(6f);
-        root.add(controls).expandX().bottom().padBottom(90f).row();
+        Table buttons = new Table();
+        buttons.defaults().width(220f).height(48f).pad(6f);
+        buttons.add(playBtn).row();
+        buttons.add(quitBtn).row();
 
-        root.add(startLbl).expandX().bottom().padBottom(40f);
+        root.add(buttons).bottom().padBottom(60f);
 
-        // Click anywhere to start
-        root.addListener(new ClickListener() {
+        // --- input ---
+        playBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
                 game.setScreen(new GameScreen(game));
             }
         });
+        quitBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent event, float x, float y) {
+                Gdx.app.exit();
+            }
+        });
+    }
+
+    private Texture makeSolid(float r, float g, float b, float a) {
+        Pixmap pm = new Pixmap(1,1, Pixmap.Format.RGBA8888);
+        pm.setColor(r,g,b,a); pm.fill();
+        Texture t = new Texture(pm);
+        pm.dispose();
+        return t;
     }
 
     @Override public void show() {
-        // start/ensure menu music
-        if (!game.musicMenu.isPlaying()) {
-            game.musicMenu.play();
-        }
-        // make sure gameplay music is off in menu
+        // Music routing: menu music on
+        if (!game.musicMenu.isPlaying()) game.musicMenu.play();
         if (game.musicGame.isPlaying()) game.musicGame.stop();
     }
 
-    @Override
-    public void render(float delta) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) ||
-            Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+    @Override public void render(float delta) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             game.setScreen(new GameScreen(game));
             return;
         }
@@ -117,5 +131,9 @@ public class MenuScreen implements Screen {
     @Override public void pause() {}
     @Override public void resume() {}
     @Override public void hide() {}
-    @Override public void dispose() { stage.dispose(); bgTexture.dispose(); }
+
+    @Override public void dispose() {
+        stage.dispose();
+        bgTex.dispose(); btnUp.dispose(); btnOver.dispose(); btnDown.dispose(); cardTex.dispose();
+    }
 }

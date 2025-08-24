@@ -19,35 +19,32 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 
-public class PauseMenu extends Group {
+public class GameOverMenu extends Group {
 
     public interface Listener {
-        void onResume();
         void onRestart();
         void onMainMenu();
     }
 
     private final Texture dimTex, panelTex, btnUp, btnOver, btnDown;
     private final Table panel;
+    private final Label scoreLabel;
 
-    public PauseMenu(BitmapFont font, final Listener listener) {
-        // solids
+    public GameOverMenu(BitmapFont font, final Listener listener) {
         dimTex = solid(0f,0f,0f,1f);
-        panelTex = solid(0.12f,0.14f,0.18f,1f);
-        btnUp   = solid(0.18f,0.22f,0.28f,1f);
-        btnOver = solid(0.24f,0.30f,0.38f,1f);
-        btnDown = solid(0.14f,0.16f,0.20f,1f);
+        panelTex = solid(0.12f,0.10f,0.10f,1f);
+        btnUp   = solid(0.30f,0.15f,0.15f,1f);
+        btnOver = solid(0.38f,0.18f,0.18f,1f);
+        btnDown = solid(0.22f,0.10f,0.10f,1f);
 
         TextureRegionDrawable dim = new TextureRegionDrawable(new TextureRegion(dimTex));
         TextureRegionDrawable panelBg = new TextureRegionDrawable(new TextureRegion(panelTex));
 
-        // Dim layer
         Image backdrop = new Image(dim);
         backdrop.setColor(0f,0f,0f,0.65f);
         backdrop.setFillParent(true);
         addActor(backdrop);
 
-        // Styles
         LabelStyle ls = new LabelStyle(font, Color.WHITE);
         TextButtonStyle bs = new TextButtonStyle(
             new TextureRegionDrawable(new TextureRegion(btnUp)),
@@ -56,24 +53,25 @@ public class PauseMenu extends Group {
             font
         );
 
-        Label title = new Label("Paused", ls);
+        Label title = new Label("GAME OVER", ls);
         title.setAlignment(Align.center);
-        title.setFontScale(1.6f);
+        title.setFontScale(1.8f);
 
-        TextButton resume = new TextButton("Resume (P)", bs);
-        TextButton restart = new TextButton("Restart (R)", bs);
+        scoreLabel = new Label("Kills: 0   •   High Score: 0", ls);
+        scoreLabel.setAlignment(Align.center);
+
+        TextButton retry = new TextButton("Retry (R)", bs);
         TextButton mainMenu = new TextButton("Main Menu (Esc)", bs);
 
-        resume.addListener(new ClickListener(){ @Override public void clicked(InputEvent e, float x, float y){ listener.onResume(); }});
-        restart.addListener(new ClickListener(){ @Override public void clicked(InputEvent e, float x, float y){ listener.onRestart(); }});
+        retry.addListener(new ClickListener(){ @Override public void clicked(InputEvent e, float x, float y){ listener.onRestart(); }});
         mainMenu.addListener(new ClickListener(){ @Override public void clicked(InputEvent e, float x, float y){ listener.onMainMenu(); }});
 
         panel = new Table();
         panel.setBackground(panelBg);
         panel.pad(24f).defaults().pad(8f).width(260f).height(48f);
-        panel.add(title).padBottom(12f).colspan(1).height(32f).width(260f).row();
-        panel.add(resume).row();
-        panel.add(restart).row();
+        panel.add(title).padBottom(8f).colspan(1).height(36f).width(300f).row();
+        panel.add(scoreLabel).padBottom(10f).height(24f).row();
+        panel.add(retry).row();
         panel.add(mainMenu).row();
 
         addActor(panel);
@@ -86,12 +84,17 @@ public class PauseMenu extends Group {
         Texture t = new Texture(pm); pm.dispose(); return t;
     }
 
-    /** Size to current view and center panel. Call once per frame before drawing. */
-    public PauseMenu centerOnCamera(Viewport viewport, Camera camera) {
+    /** For updating score text before showing. */
+    public void setScores(int kills, int highscore) {
+        scoreLabel.setText("Kills: " + kills + "   •   High Score: " + highscore);
+    }
+
+    /** Size to current view and center panel. Call once per frame when visible. */
+    public GameOverMenu centerOnCamera(Viewport viewport, Camera camera) {
         float vw = viewport.getWorldWidth(), vh = viewport.getWorldHeight();
         setSize(vw, vh);
         setPosition(camera.position.x - vw/2f, camera.position.y - vh/2f);
-        float pw = Math.min(320f, vw - 40f), ph = 250f;
+        float pw = Math.min(360f, vw - 40f), ph = 260f;
         panel.setSize(pw, ph);
         panel.setPosition((vw - pw)/2f, (vh - ph)/2f);
         return this;
