@@ -48,11 +48,11 @@ import java.util.Random;
 public class GameScreen implements Screen {
     private final SwordSurvivorGame game;
 
-    // World stage (follows player camera)
+    // World stage (camera follows player)
     private final ExtendViewport viewport;
     private final Stage stage;
 
-    // UI stage (fixed to screen)
+    // UI stage (screen-fixed)
     private ScreenViewport uiViewport;
     private Stage uiStage;
 
@@ -73,25 +73,25 @@ public class GameScreen implements Screen {
     private boolean gameOver = false;
     private boolean paused = false;
 
-    // Level up UI
+    // Level up
     private boolean levelUpPending = false;
     private BoonCard[] boonChoices = new BoonCard[3];
 
     // Wave banner
     private int lastAnnouncedWave = 0;
 
-    // Menus (world-space overlays that follow camera)
+    // Menus (world-space)
     private PauseMenu pauseMenu;
     private GameOverMenu gameOverMenu;
 
-    // HUD text
+    // HUD
     private final GlyphLayout layout = new GlyphLayout();
 
-    // Pause button (UI-space, top-right)
+    // Pause button (UI)
     private ImageButton pauseBtn;
     private Texture btnUpTex, btnOverTex, btnDownTex, pauseIconTex;
 
-    // Touch joysticks (UI-space)
+    // Touch joysticks (UI)
     private VirtualJoystick leftJoy;
     private VirtualJoystick rightJoy;
 
@@ -99,15 +99,13 @@ public class GameScreen implements Screen {
         this.game = game;
         this.batch = game.batch;
 
-        // World stage (extend viewport)
         viewport = new ExtendViewport(SwordSurvivorGame.VIEW_WIDTH, SwordSurvivorGame.VIEW_HEIGHT);
         stage = new Stage(viewport, batch);
 
-        // UI stage (screen viewport)
         uiViewport = new ScreenViewport();
         uiStage = new Stage(uiViewport, batch);
 
-        // Input: UI first, then world
+        // Input order: UI first, then world
         Gdx.input.setInputProcessor(new InputMultiplexer(uiStage, stage));
 
         // Menus (world stage)
@@ -124,21 +122,21 @@ public class GameScreen implements Screen {
         });
         stage.addActor(gameOverMenu);
 
-        // Pause button (UI stage)
+        // Pause button (UI)
         btnUpTex   = makeSolid(0.18f, 0.22f, 0.28f, 1f);
         btnOverTex = makeSolid(0.24f, 0.30f, 0.38f, 1f);
         btnDownTex = makeSolid(0.14f, 0.16f, 0.20f, 1f);
         pauseIconTex = makePauseIcon(32, 1f, 1f, 1f, 1f);
 
         ImageButtonStyle pStyle = new ImageButtonStyle();
-        pStyle.up   = new TextureRegionDrawable(new TextureRegion(btnUpTex));
-        pStyle.over = new TextureRegionDrawable(new TextureRegion(btnOverTex));
-        pStyle.down = new TextureRegionDrawable(new TextureRegion(btnDownTex));
         TextureRegionDrawable icon = new TextureRegionDrawable(new TextureRegion(pauseIconTex));
-        pStyle.imageUp = icon; pStyle.imageOver = icon; pStyle.imageDown = icon;
+        pStyle.up   = icon;
+        pStyle.over = icon;
+        pStyle.down = icon;
+
 
         pauseBtn = new ImageButton(pStyle);
-        pauseBtn.setSize(44f, 44f);
+        pauseBtn.setSize(44f * 1.5f, 44f * 1.5f);
         pauseBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
                 if (!levelUpPending && !gameOver) togglePause(true);
@@ -146,44 +144,32 @@ public class GameScreen implements Screen {
         });
         uiStage.addActor(pauseBtn);
 
-        // Virtual joysticks (UI stage)
+        // Joysticks (UI)
         leftJoy  = new VirtualJoystick(64f, 28f, 6f);
         rightJoy = new VirtualJoystick(64f, 28f, 6f);
         uiStage.addActor(leftJoy);
         uiStage.addActor(rightJoy);
 
-        // Touch routing on UI stage: left half = movement, right half = aim
+        // UI touch routing (don’t consume when overlays up)
         uiStage.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
-            @Override
-            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                // If an overlay/menu is up, let the event pass to the world stage buttons
+            @Override public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
                 if (paused || gameOver || levelUpPending) return false;
-
                 float cx = uiStage.getCamera().position.x;
-                boolean handled = false;
-                if (x <= cx) {
-                    if (!leftJoy.isActive()) { leftJoy.activate(pointer, x, y); handled = true; }
-                } else {
-                    if (!rightJoy.isActive()) { rightJoy.activate(pointer, x, y); handled = true; }
-                }
-                return handled; // only consume when we actually spawned a joystick
+                if (x <= cx) { if (!leftJoy.isActive()) leftJoy.activate(pointer, x, y); }
+                else         { if (!rightJoy.isActive()) rightJoy.activate(pointer, x, y); }
+                return true;
             }
-
-            @Override
-            public void touchDragged (InputEvent event, float x, float y, int pointer) {
+            @Override public void touchDragged (InputEvent event, float x, float y, int pointer) {
                 if (leftJoy.isActive()  && pointer == leftJoy.getPointerId())  leftJoy.drag(pointer, x, y);
                 if (rightJoy.isActive() && pointer == rightJoy.getPointerId()) rightJoy.drag(pointer, x, y);
             }
-
-            @Override
-            public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
+            @Override public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
                 leftJoy.release(pointer);
                 rightJoy.release(pointer);
             }
         });
 
-
-        // Load textures
+        // Textures
         texPlayer = new Texture(Gdx.files.internal("player.png"));
         texEnemy  = new Texture(Gdx.files.internal("enemy.png"));
         texSword  = new Texture(Gdx.files.internal("sword.png"));
@@ -230,22 +216,21 @@ public class GameScreen implements Screen {
         pauseMenu.hide();
         gameOverMenu.hide();
 
-        // Show Wave 1 above player
         lastAnnouncedWave = 1;
         stage.addActor(new WaveBanner(game.font, "Wave 1!", player.pos, player.size + 32f, 1.25f));
     }
 
     @Override public void show() {
-        // Music routing
         if (!game.musicGame.isPlaying()) game.musicGame.play();
         if (game.musicMenu.isPlaying()) game.musicMenu.stop();
+        game.updateMusicVolumes(); // honor mute state
     }
 
     @Override
     public void render(float delta) {
         handleGlobalInput();
 
-        // Camera follow & clamp to world
+        // Camera follow & clamp
         float halfW = viewport.getWorldWidth()/2f;
         float halfH = viewport.getWorldHeight()/2f;
         float camX = MathUtils.clamp(player.pos.x, halfW, SwordSurvivorGame.WORLD_WIDTH - halfW);
@@ -253,61 +238,57 @@ public class GameScreen implements Screen {
         stage.getCamera().position.set(camX, camY, 0f);
         stage.getCamera().update();
 
-        // Keep world overlays centered
+        // Keep menus centered to view
         pauseMenu.centerOnCamera(viewport, stage.getCamera());
         if (gameOver) gameOverMenu.centerOnCamera(viewport, stage.getCamera());
 
-        // UI: position pause button in top-right of UI stage
+        // UI: position pause in top-right (UI space)
         float uvw = uiViewport.getWorldWidth();
         float uvh = uiViewport.getWorldHeight();
         float ucx = uiStage.getCamera().position.x;
         float ucy = uiStage.getCamera().position.y;
         float left = ucx - uvw/2f, bottom = ucy - uvh/2f;
-        pauseBtn.setPosition(left + uvw - pauseBtn.getWidth() - 10f, bottom + uvh - pauseBtn.getHeight() - 10f);
+        pauseBtn.setPosition(left + uvw - pauseBtn.getWidth() - 10f,
+            bottom + uvh - pauseBtn.getHeight() - 10f);
 
-        // Show/hide HUD controls
         boolean hudVisible = !paused && !levelUpPending && !gameOver;
         pauseBtn.setVisible(hudVisible);
         leftJoy.setVisible(hudVisible && leftJoy.isActive());
         rightJoy.setVisible(hudVisible && rightJoy.isActive());
         if (!hudVisible) { leftJoy.release(leftJoy.getPointerId()); rightJoy.release(rightJoy.getPointerId()); }
 
-        // Clear screen
+        // Clear
         Gdx.gl.glClearColor(0,0,0,1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Update world
         if (!gameOver && !levelUpPending && !paused) update(delta);
 
-        // Draw world & HUD text
+        // Draw world + HUD
         shapes.setProjectionMatrix(stage.getCamera().combined);
         batch.setProjectionMatrix(stage.getCamera().combined);
         drawWorld();
         drawHUD();
 
-        // Stages: world first, then UI (so buttons/joysticks draw on top)
+        // Stages
         stage.act(delta);
         stage.draw();
 
         uiStage.act(delta);
         uiStage.draw();
 
-        // Level-up overlay (world‑space)
+        // Level-up overlay last (world-space)
         if (levelUpPending) drawLevelUpOverlay();
     }
 
     private void handleGlobalInput() {
-        // GAME OVER
         if (gameOver) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.R)) { init(); return; }
             if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) { game.setScreen(new MenuScreen(game)); return; }
             return;
         }
-
-        // Level-up overlay blocks pause toggles
         if (levelUpPending) return;
 
-        // PAUSED
         if (paused) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.P)) { togglePause(false); return; }
             if (Gdx.input.isKeyJustPressed(Input.Keys.R)) { init(); togglePause(false); return; }
@@ -315,7 +296,6 @@ public class GameScreen implements Screen {
             return;
         }
 
-        // PLAYING: Esc or P -> open pause
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE) || Gdx.input.isKeyJustPressed(Input.Keys.P)) {
             togglePause(true);
         }
@@ -327,33 +307,38 @@ public class GameScreen implements Screen {
     }
 
     private void update(float dt) {
-        // ----- Movement -----
-        // If the left joystick is active, drive movement here.
-        // Otherwise, DO NOT move here—let Player.update() handle keyboard like before.
+        // Movement: joystick overrides keyboard
+        Vector2 move = new Vector2();
         if (leftJoy.isActive()) {
-            Vector2 move = new Vector2(leftJoy.getValue());
+            move.set(leftJoy.getValue());
             if (move.len2() > 1f) move.nor();
-            if (!move.isZero()) {
-                move.nor().scl(player.speed * dt);
-                player.pos.add(move);
-                // Optional: set facing based on joystick X
-                if (move.x < 0) player.facingLeft = true;
-                else if (move.x > 0) player.facingLeft = false;
-            }
+        } else {
+            if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT))  move.x -= 1;
+            if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) move.x += 1;
+            if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP))    move.y += 1;
+            if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN))  move.y -= 1;
+            if (move.len2() > 1f) move.nor();
+        }
+
+        if (!move.isZero()) {
+            move.nor().scl(player.speed * dt);
+            player.pos.add(move);
+            if (move.x < 0) player.facingLeft = true;
+            else if (move.x > 0) player.facingLeft = false;
         }
 
         // Aim (right joystick overrides mouse)
         Vector2 aim = getAimWorld();
 
-        // Player update (aim/swing, timers, etc.)
+        // Player update (swing, timers, etc.)
         player.update(dt, aim);
 
-        // Keep player inside the playable world
+        // Clamp inside world
         float half = player.size * 0.5f;
         player.pos.x = MathUtils.clamp(player.pos.x, half, SwordSurvivorGame.WORLD_WIDTH  - half);
         player.pos.y = MathUtils.clamp(player.pos.y, half, SwordSurvivorGame.WORLD_HEIGHT - half);
 
-        // Spawner & wave banner
+        // Spawns & waves
         spawner.update(dt);
         int currentWave = spawner.getWave();
         if (currentWave > lastAnnouncedWave) {
@@ -382,7 +367,7 @@ public class GameScreen implements Screen {
                     player.hp -= e.touchDamage;
                     player.hurtCooldown = 0.6f;
                     player.hurtTimer = 0.2f;
-                    game.sfxPlayerHit.play();
+                    game.playSfx(game.sfxPlayerHit);
                     if (player.hp <= 0) {
                         gameOver = true;
                         game.maybeSetHighscore(kills);
@@ -392,13 +377,13 @@ public class GameScreen implements Screen {
                 }
             }
 
-            // Sword collision
+            // Sword hit
             if (player.swing.active && CombatUtils.swordHitsEnemyThisFrame(player, e)) {
                 if (e.lastHitSwingId != player.swing.id) {
                     e.hp -= player.damage;
                     e.lastHitSwingId = player.swing.id;
                     e.hurtTimer = 0.2f;
-                    game.sfxEnemyHit.play();
+                    game.playSfx(game.sfxEnemyHit);
 
                     stage.addActor(new DamageText(game.font, String.valueOf(player.damage),
                         e.pos.x, e.pos.y + e.size * 0.6f, Color.ORANGE));
@@ -417,12 +402,12 @@ public class GameScreen implements Screen {
             Orb o = orbs.get(i);
             o.update(dt, player.pos, player.pickupRange);
             if (o.canPickup(player.pos, player.pickupRange)) {
-                game.sfxPickup.play();
+                game.playSfx(game.sfxPickup);
                 int xpGain = Math.round(o.value * player.xpGain);
                 if (player.gainXP(xpGain)) {
                     rollBoonChoices();
                     levelUpPending = true;
-                    game.sfxLevel.play();
+                    game.playSfx(game.sfxLevel);
                 }
                 orbs.removeIndex(i);
             }
@@ -430,44 +415,44 @@ public class GameScreen implements Screen {
     }
 
     private Vector2 getAimWorld() {
-        // If right joystick is active, convert its direction to a world aim point
         if (rightJoy != null && rightJoy.isActive()) {
             Vector2 dir = new Vector2(rightJoy.getValue());
             if (dir.isZero()) return new Vector2(player.pos);
             dir.nor().scl(player.swordReach);
             return new Vector2(player.pos).add(dir);
         }
-        // Mouse -> world
         Vector3 tmp = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0f);
         viewport.unproject(tmp);
         return new Vector2(tmp.x, tmp.y);
     }
 
     private void drawWorld() {
-        // Background play area
+        // Background play area & orbs
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(0.10f, 0.12f, 0.14f, 1f);
         shapes.rect(0, 0, SwordSurvivorGame.WORLD_WIDTH, SwordSurvivorGame.WORLD_HEIGHT);
-        // XP orbs
         shapes.setColor(Color.YELLOW);
         for (Orb o : orbs) shapes.circle(o.pos.x, o.pos.y, o.radius);
         shapes.end();
 
-        // Textured sprites
+        // Sprites
         batch.begin();
 
-        // Sword
+        // Sword sprite as stretched/rotated quad
         if (player.swing.active) {
             Vector2 p0 = player.pos;
             Vector2 p1 = CombatUtils.endOfSword(player);
-            float dx = p1.x - p0.x, dy = p1.y - p0.y;
+            float dx = p1.x - p0.x;
+            float dy = p1.y - p0.y;
             float length = (float)Math.sqrt(dx*dx + dy*dy);
             float angle = (float)Math.toDegrees(Math.atan2(dy, dx));
+
             batch.draw(texSword,
                 p0.x, p0.y - player.swordThickness/2f,
-                0, player.swordThickness/2f,
-                length, player.swordThickness,
-                1f, 1f, angle,
+                0, player.swordThickness/2f,          // origin
+                length, player.swordThickness,         // size
+                1f, 1f,
+                angle,
                 0, 0, texSword.getWidth(), texSword.getHeight(),
                 false, false);
         }
@@ -509,7 +494,7 @@ public class GameScreen implements Screen {
         float top  = stage.getCamera().position.y + viewport.getWorldHeight()/2f - 10f;
         f.draw(batch, stats, left, top);
 
-        // Crosshair (mouse mode only)
+        // Crosshair when mouse-aiming
         if (!(rightJoy != null && rightJoy.isActive())) {
             Vector2 m = getAimWorld();
             f.draw(batch, "+", m.x - 3, m.y + 4);
@@ -522,15 +507,12 @@ public class GameScreen implements Screen {
     }
 
     private void drawLevelUpOverlay() {
-        // Ensure choices exist
+        // Ensure choices exist (safety)
         for (int i = 0; i < 3; i++) {
-            if (boonChoices[i] == null || boonChoices[i].boon == null) {
-                rollBoonChoices();
-                break;
-            }
+            if (boonChoices[i] == null || boonChoices[i].boon == null) { rollBoonChoices(); break; }
         }
 
-        // darken
+        // Darken screen
         Gdx.gl.glEnable(GL20.GL_BLEND);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(0, 0, 0, 0.6f);
@@ -546,7 +528,7 @@ public class GameScreen implements Screen {
         float startX = stage.getCamera().position.x - totalW/2f;
         float y = stage.getCamera().position.y - ch/2f;
 
-        // cards
+        // Cards
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (int i = 0; i < 3; i++) {
             float x = startX + i * (cw + gap);
@@ -557,7 +539,7 @@ public class GameScreen implements Screen {
         }
         shapes.end();
 
-        // --- TEXT: reset state, then draw ---
+        // Text (reset state)
         batch.setProjectionMatrix(stage.getCamera().combined);
         batch.setColor(1f,1f,1f,1f);
         game.font.setColor(1f,1f,1f,1f);
@@ -584,13 +566,12 @@ public class GameScreen implements Screen {
             game.font.getData().setScale(0.95f);
             RenderUtils.drawWrapped(game.font, batch, b.desc, tx, ty - 20, cw - 24, 18);
         }
-        // restore defaults
+        // restore
         game.font.getData().setScale(1f);
         game.font.setColor(Color.WHITE);
         batch.end();
 
-
-        // input
+        // Input for picking a card
         int pick = -1;
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1)) pick = 0;
         if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_2)) pick = 1;
@@ -608,7 +589,7 @@ public class GameScreen implements Screen {
 
         if (pick != -1) {
             boonChoices[pick].boon.apply(player);
-            player.hp = player.maxHp; // heal AFTER boon
+            player.hp = player.maxHp; // heal AFTER boon applied
             levelUpPending = false;
         }
     }
@@ -626,8 +607,8 @@ public class GameScreen implements Screen {
     }
 
     @Override public void resize(int width, int height) {
-        viewport.update(width, height, true);    // world
-        uiViewport.update(width, height, true);  // UI
+        viewport.update(width, height, true);
+        uiViewport.update(width, height, true);
     }
     @Override public void pause() {}
     @Override public void resume() {}
