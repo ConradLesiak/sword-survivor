@@ -2,7 +2,10 @@ package com.rgs.swordsurvivor.systems;
 
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.rgs.swordsurvivor.entities.Brute;
 import com.rgs.swordsurvivor.entities.Enemy;
+import com.rgs.swordsurvivor.entities.Golem;
+import com.rgs.swordsurvivor.entities.Obby;
 
 public class Spawner {
     private float spawnTimer = 0f;
@@ -14,9 +17,9 @@ public class Spawner {
 
     // --- tuning knobs ---
     private static final float SPEED_SCALE_PER_WAVE = 0.12f;  // caps at ~+80%
-    private static final float HP_SCALE_PER_WAVE    = 0.28f;  // faster HP ramp
-    private static final float DMG_SCALE_PER_WAVE   = 0.18f;  // faster touch-dmg ramp
-    private static final float MAX_SPEED_SCALE      = 1.8f;   // safety cap
+    private static final float HP_SCALE_PER_WAVE    = 10.0f;  // faster HP ramp
+    private static final float DMG_SCALE_PER_WAVE   = 2.0f;  // faster touch-dmg ramp
+    private static final float MAX_SPEED_SCALE      = 3f;   // safety cap
 
     public void reset() {
         spawnTimer = 0f;
@@ -84,7 +87,32 @@ public class Spawner {
         e.hp           = Math.max(1, Math.round(e.hp * hpScale));
         e.touchDamage  = Math.max(1, Math.round(e.touchDamage * dmgScale));
 
-        return e;
+        Vector2 pos = new Vector2(x, y);
+
+        // --- Pick type: Brute spawns infrequently from Wave 4+, scales up over time ---
+        int wave = getWave();
+        float bruteChance = 0f;
+        if (wave >= 2) {
+            // starts at 6% chance on wave 2, increases +2.5% per wave, capped at 35%
+            bruteChance = Math.min(0.35f, 0.06f + 0.025f * (wave - 2));
+        }
+
+        // Golem: starts wave 5, rarer, up to 20% max
+        float golemChance = 0f;
+        if (wave >= 5) golemChance = Math.min(0.20f, 0.04f + 0.02f * (wave - 5));
+
+
+        float obbyChance = 0f;
+        if (wave >= 10) obbyChance = Math.min(0.15f, 0.03f + 0.015f * (wave - 10));
+
+        float r = MathUtils.random();
+        if (r < obbyChance) return new Obby(pos);
+        r -= obbyChance;
+        if (r < golemChance) return new Golem(pos);
+        r -= golemChance;
+        if (r < bruteChance) return new Brute(pos);
+
+        return new Enemy(pos);
     }
 
     public int getWave() {

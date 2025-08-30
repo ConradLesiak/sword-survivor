@@ -31,7 +31,10 @@ import com.rgs.swordsurvivor.boons.Boon;
 import com.rgs.swordsurvivor.boons.BoonCard;
 import com.rgs.swordsurvivor.boons.BoonType;
 import com.rgs.swordsurvivor.combat.CombatUtils;
+import com.rgs.swordsurvivor.entities.Brute;
 import com.rgs.swordsurvivor.entities.Enemy;
+import com.rgs.swordsurvivor.entities.Golem;
+import com.rgs.swordsurvivor.entities.Obby;
 import com.rgs.swordsurvivor.entities.Orb;
 import com.rgs.swordsurvivor.entities.Player;
 import com.rgs.swordsurvivor.systems.Spawner;
@@ -60,7 +63,7 @@ public class GameScreen implements Screen {
     private final SpriteBatch batch;
 
     // Textures
-    private Texture texPlayer, texEnemy, texSword;
+    private Texture texPlayer, texEnemy, texEnemy2, texEnemy3, texEnemy4, texSword;
 
     // Entities / systems
     private final Array<Enemy> enemies = new Array<>();
@@ -90,6 +93,7 @@ public class GameScreen implements Screen {
     // Pause button (UI)
     private ImageButton pauseBtn;
     private Texture btnUpTex, btnOverTex, btnDownTex, pauseIconTex;
+
 
     // Touch joysticks (UI)
     private VirtualJoystick leftJoy;
@@ -172,6 +176,9 @@ public class GameScreen implements Screen {
         // Textures
         texPlayer = new Texture(Gdx.files.internal("player.png"));
         texEnemy  = new Texture(Gdx.files.internal("enemy.png"));
+        texEnemy2 = new Texture(Gdx.files.internal("enemy2.png"));
+        texEnemy3 = new Texture(Gdx.files.internal("enemy3.png"));
+        texEnemy4 = new Texture(Gdx.files.internal("enemy4.png"));
         texSword  = new Texture(Gdx.files.internal("sword.png"));
 
         init();
@@ -391,7 +398,37 @@ public class GameScreen implements Screen {
                     if (e.hp <= 0) {
                         enemies.removeIndex(i);
                         kills++;
-                        orbs.add(new Orb(e.pos.cpy(), 1 + spawner.getWave()/2));
+
+                        int wave = spawner.getWave();
+                        int orbValue = 1 + wave / 2;
+
+                        if (e instanceof Obby) {
+                            float r = 26f; // a bit wider ring
+                            for (int k = 0; k < 15; k++) { // 15 orbs for Obby
+                                float angle = (float)(Math.PI * 2 * k / 15.0);
+                                float ox = (float)Math.cos(angle) * r;
+                                float oy = (float)Math.sin(angle) * r;
+                                orbs.add(new Orb(new Vector2(e.pos.x + ox, e.pos.y + oy), orbValue));
+                            }
+                        } else if (e instanceof Golem) {
+                            float r = 22f;
+                            for (int k = 0; k < 8; k++) {
+                                float angle = (float)(Math.PI * 2 * k / 8.0);
+                                orbs.add(new Orb(new Vector2(
+                                    e.pos.x + (float)Math.cos(angle) * r,
+                                    e.pos.y + (float)Math.sin(angle) * r), orbValue));
+                            }
+                        } else if (e instanceof Brute) {
+                            float r = 16f;
+                            for (int k = 0; k < 3; k++) {
+                                float angle = (float)(Math.PI * 2 * k / 3.0);
+                                orbs.add(new Orb(new Vector2(
+                                    e.pos.x + (float)Math.cos(angle) * r,
+                                    e.pos.y + (float)Math.sin(angle) * r), orbValue));
+                            }
+                        } else {
+                            orbs.add(new Orb(e.pos.cpy(), orbValue));
+                        }
                     }
                 }
             }
@@ -465,16 +502,25 @@ public class GameScreen implements Screen {
             batch.draw(texPlayer, player.pos.x + player.size/2f, player.pos.y - player.size/2f, -player.size, player.size);
         }
 
-        // Enemies
+    // Enemies
         for (Enemy e : enemies) {
             batch.setColor(e.hurtTimer > 0f ? Color.RED : Color.WHITE);
+
+            Texture tex = texEnemy;
+            if (e instanceof Obby)      tex = texEnemy4;
+            else if (e instanceof Golem) tex = texEnemy3;
+            else if (e instanceof Brute) tex = texEnemy2;
+
             if (!e.facingLeft) {
-                batch.draw(texEnemy, e.pos.x - e.size/2f, e.pos.y - e.size/2f, e.size, e.size);
+                batch.draw(tex, e.pos.x - e.size/2f, e.pos.y - e.size/2f, e.size, e.size);
             } else {
-                batch.draw(texEnemy, e.pos.x + e.size/2f, e.pos.y - e.size/2f, -e.size, e.size);
+                batch.draw(tex, e.pos.x + e.size/2f, e.pos.y - e.size/2f, -e.size, e.size);
             }
         }
         batch.setColor(Color.WHITE);
+
+
+
         batch.end();
     }
 
@@ -622,6 +668,9 @@ public class GameScreen implements Screen {
 
         texPlayer.dispose();
         texEnemy.dispose();
+        texEnemy2.dispose();
+        texEnemy3.dispose();
+        texEnemy4.dispose();
         texSword.dispose();
 
         btnUpTex.dispose();
