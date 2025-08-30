@@ -5,7 +5,7 @@ import com.badlogic.gdx.math.Vector2;
 public class Enemy {
     public final Vector2 pos;
     public float size = 48f;
-    public int hp = 3;
+    public int hp = 4;
     public int touchDamage = 1;
     public float speed = 85f;
     public int lastHitSwingId = -1;
