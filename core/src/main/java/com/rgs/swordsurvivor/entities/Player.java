@@ -36,6 +36,8 @@ public class Player {
 
     public float hurtTimer = 0f; // seconds remaining for red flash
 
+    public float critChance = 0.15f; // 15% base chance
+
     public Player(Vector2 start) {this.pos = start; }
 
     public void update(float dt, Vector2 mouseWorld) {

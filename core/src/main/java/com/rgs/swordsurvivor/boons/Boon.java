@@ -19,6 +19,8 @@ public class Boon {
                 return new Boon(t, "Haste", "Reduce attack cooldown by 15% (faster auto-attacks).");
             case DAMAGE:
                 return new Boon(t, "Sharpened Edge", "Increase sword damage by +1.");
+            case CRIT_CHANCE:
+                return new Boon(t, "Sharpened Instincts", "+10% Critical Hit Chance.");
             case MOVE_SPEED:
                 return new Boon(t, "Boots of Wind", "Increase movement speed by +15%.");
             case AREA:
@@ -41,6 +43,9 @@ public class Boon {
                 break;
             case DAMAGE:
                 p.damage += 1;
+                break;
+            case CRIT_CHANCE:
+                p.critChance = Math.min(1.0f, p.critChance + 0.10f);
                 break;
             case MOVE_SPEED:
                 p.speed *= 1.15f;

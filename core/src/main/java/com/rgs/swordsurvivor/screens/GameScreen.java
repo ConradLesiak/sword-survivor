@@ -365,14 +365,19 @@ public class GameScreen implements Screen {
             // Sword hits
             if (player.swing.active && CombatUtils.swordHitsEnemyThisFrame(player, e)) {
                 if (e.lastHitSwingId != player.swing.id) {
-                    e.hp -= player.damage;
+                    // --- CRIT ROLL ---
+                    boolean crit = com.badlogic.gdx.math.MathUtils.random() < player.critChance;
+                    int dealt = crit ? player.damage * 2 : player.damage;
+
+                    e.hp -= dealt;
                     e.lastHitSwingId = player.swing.id;
                     e.hurtTimer = 0.2f;
                     game.playSfx(game.sfxEnemyHit);
 
-                    // Damage number
-                    stage.addActor(new DamageText(game.font, String.valueOf(player.damage),
-                        e.pos.x, e.pos.y + e.size * 0.6f, Color.ORANGE));
+                    // Yellow text if crit, otherwise orange
+                    Color dmgColor = crit ? Color.ORANGE : Color.WHITE;
+                    stage.addActor(new DamageText(game.font, String.valueOf(dealt),
+                        e.pos.x, e.pos.y + e.size * 0.6f, dmgColor));
 
                     // Death
                     if (e.hp <= 0) {
@@ -646,8 +651,20 @@ public class GameScreen implements Screen {
 
     private void rollBoonChoices() {
         EnumSet<BoonType> pool = EnumSet.allOf(BoonType.class);
+
+        // Remove crit boon if already capped
+        if (player.critChance >= 1.0f - 1e-6f) {
+            pool.remove(BoonType.CRIT_CHANCE);
+        }
+
+        // Safety: if everything somehow gets removed, restore full pool
+        if (pool.isEmpty()) pool = EnumSet.allOf(BoonType.class);
+
         for (int i = 0; i < 3; i++) {
             if (pool.isEmpty()) pool = EnumSet.allOf(BoonType.class);
+            // Re-apply filter each pick in case pool was refilled
+            if (player.critChance >= 1.0f - 1e-6f) pool.remove(BoonType.CRIT_CHANCE);
+
             int idx = rng.nextInt(pool.size());
             int c = 0; BoonType chosen = null;
             for (BoonType t : pool) { if (c == idx) { chosen = t; break; } c++; }
