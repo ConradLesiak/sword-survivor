@@ -27,9 +27,10 @@ public class SwordSurvivorGame extends Game {
     public Sound sfxPickup;     // pickup.mp3
     public Sound sfxLevel;      // level.mp3
 
-    // Global mute state (persisted)
+    // Global mute (persisted)
     public boolean muted = false;
 
+    // High score (persisted)
     private int highscoreKills = 0;
 
     @Override
@@ -40,7 +41,7 @@ public class SwordSurvivorGame extends Game {
             com.badlogic.gdx.graphics.Texture.TextureFilter.Nearest,
             com.badlogic.gdx.graphics.Texture.TextureFilter.Nearest);
 
-        // Load audio once
+        // Load audio
         musicMenu = Gdx.audio.newMusic(Gdx.files.internal("music1.mp3"));
         musicGame = Gdx.audio.newMusic(Gdx.files.internal("music2.mp3"));
         musicMenu.setLooping(true);
@@ -51,21 +52,30 @@ public class SwordSurvivorGame extends Game {
         sfxPickup    = Gdx.audio.newSound(Gdx.files.internal("pickup.mp3"));
         sfxLevel     = Gdx.audio.newSound(Gdx.files.internal("level.mp3"));
 
-        // Load persisted mute setting
+        // Load persisted settings
         Preferences prefs = Gdx.app.getPreferences("sword_survivor_settings");
         muted = prefs.getBoolean("muted", false);
+        highscoreKills = prefs.getInteger("highscore_kills", 0); // <-- load high score
         updateMusicVolumes();
 
         setScreen(new MenuScreen(this));
     }
 
     public int getHighscoreKills() { return highscoreKills; }
-    public void maybeSetHighscore(int kills) { highscoreKills = Math.max(highscoreKills, kills); }
+
+    /** If kills beats the stored high score, update memory and persist immediately. */
+    public void maybeSetHighscore(int kills) {
+        if (kills > highscoreKills) {
+            highscoreKills = kills;
+            Preferences prefs = Gdx.app.getPreferences("sword_survivor_settings");
+            prefs.putInteger("highscore_kills", highscoreKills); // <-- save high score
+            prefs.flush();
+        }
+    }
 
     /** Centralized SFX playback that respects global mute. */
     public void playSfx(Sound sfx) {
-        if (sfx == null) return;
-        if (muted) return;
+        if (sfx == null || muted) return;
         sfx.play(1f);
     }
 
@@ -76,7 +86,7 @@ public class SwordSurvivorGame extends Game {
         if (musicGame != null) musicGame.setVolume(vol);
     }
 
-    /** Set + persist mute state, and immediately apply to currently playing music. */
+    /** Set + persist mute state. */
     public void setMuted(boolean m) {
         muted = m;
         updateMusicVolumes();

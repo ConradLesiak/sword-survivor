@@ -32,6 +32,8 @@ public class MenuScreen implements Screen {
 
     private Texture bgTex, btnUp, btnOver, btnDown, cardTex;
     private Texture cbBoxOff, cbBoxOn;
+
+    private Label highscoreLabel;   // <-- keep reference so we can refresh text
     private CheckBox muteBox;
 
     public MenuScreen(SwordSurvivorGame game) {
@@ -39,12 +41,11 @@ public class MenuScreen implements Screen {
         viewport = new ExtendViewport(SwordSurvivorGame.VIEW_WIDTH, SwordSurvivorGame.VIEW_HEIGHT);
         stage = new Stage(viewport, game.batch);
         Gdx.input.setInputProcessor(stage);
-
         buildUI();
     }
 
     private void buildUI() {
-        // Background
+        // Backgrounds
         bgTex = makeSolid(0.08f, 0.09f, 0.12f, 1f);
         TextureRegionDrawable bg = new TextureRegionDrawable(new TextureRegion(bgTex));
         cardTex = makeSolid(0.12f, 0.14f, 0.18f, 1f);
@@ -67,9 +68,9 @@ public class MenuScreen implements Screen {
         title.setAlignment(Align.center);
         title.setFontScale(2.2f);
 
-        Label highscore = new Label("High Score (kills): " + game.getHighscoreKills(), labelStyle);
-        highscore.setAlignment(Align.center);
-        highscore.setFontScale(1.1f);
+        highscoreLabel = new Label("", labelStyle); // set text in show()
+        highscoreLabel.setAlignment(Align.center);
+        highscoreLabel.setFontScale(1.1f);
 
         TextButton playBtn = new TextButton("Play", btnStyle);
         TextButton quitBtn = new TextButton("Quit", btnStyle);
@@ -86,7 +87,6 @@ public class MenuScreen implements Screen {
         muteBox = new CheckBox("Mute", cbStyle);
         muteBox.getLabel().setFontScale(1f);
         muteBox.setChecked(game.muted);
-
         muteBox.addListener(new ChangeListener() {
             @Override public void changed(ChangeEvent event, Actor actor) {
                 game.setMuted(muteBox.isChecked());
@@ -103,7 +103,7 @@ public class MenuScreen implements Screen {
         header.setBackground(card);
         header.pad(18f).defaults().pad(6f);
         header.add(title).row();
-        header.add(highscore);
+        header.add(highscoreLabel);
 
         root.add(header).expandX().top().padTop(40f).width(Math.min(520f, viewport.getWorldWidth() - 40f)).row();
         root.add().expand().row();
@@ -167,15 +167,18 @@ public class MenuScreen implements Screen {
     }
 
     @Override public void show() {
+        // Sync mute & music each time menu opens
         muteBox.setChecked(game.muted);
         game.updateMusicVolumes();
-
         if (!game.musicMenu.isPlaying()) game.musicMenu.play();
         if (game.musicGame.isPlaying()) game.musicGame.stop();
+
+        // Refresh high score label from the game's persisted value
+        highscoreLabel.setText("High Score (kills): " + game.getHighscoreKills());
     }
 
-    @Override
-    public void render(float delta) {
+    @Override public void render(float delta) {
+        // quick keyboard start
         if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER) || Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             game.setScreen(new GameScreen(game));
             return;
@@ -185,9 +188,9 @@ public class MenuScreen implements Screen {
     }
 
     @Override public void resize(int width, int height) { viewport.update(width, height, true); }
-    @Override public void pause() {}
+    @Override public void pause()  {}
     @Override public void resume() {}
-    @Override public void hide() {}
+    @Override public void hide()   {}
 
     @Override
     public void dispose() {
