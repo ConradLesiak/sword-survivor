@@ -115,12 +115,12 @@ public class Spawner {
         }
 
         // --- Per-wave difficulty scaling (applies to all enemy types) ---
-        // HP scales aggressively: +20% per wave
-        float hpScale = (float) Math.pow(1.20, Math.max(0, wave - 1));
+        // HP scaling: +5% per wave
+        float hpScale = (float) Math.pow(1.05, Math.max(0, wave - 1));
         e.hp = Math.round(e.hp * hpScale);
 
-        // Contact dmg scales gently: +6% per wave
-        float dmgScale = (float) Math.pow(1.06, Math.max(0, wave - 1));
+        // Contact dmg scales gently: +2% per wave
+        float dmgScale = (float) Math.pow(1.02, Math.max(0, wave - 1));
         e.touchDamage = Math.max(1, Math.round(e.touchDamage * dmgScale));
 
         return e;
