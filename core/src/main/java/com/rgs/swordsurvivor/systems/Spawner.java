@@ -98,7 +98,7 @@ public class Spawner {
         // Obby:  starts wave 10, up to 15%
         float obbyChance  = (wave >= 10) ? Math.min(0.15f, 0.03f + 0.015f * (wave - 10)) : 0f;
         // FireOrb: starts wave 15, up to 10%
-        float fireChance  = (wave >= 15) ? Math.min(0.10f, 0.02f + 0.01f  * (wave - 15)) : 0f;
+        float fireChance  = (wave >= 25) ? Math.min(0.10f, 0.02f + 0.01f  * (wave - 25)) : 0f;
 
         float r = MathUtils.random();
         Enemy e;

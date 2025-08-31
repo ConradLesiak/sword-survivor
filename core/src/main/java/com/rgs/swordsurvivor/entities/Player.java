@@ -11,6 +11,8 @@ public class Player {
     public final Vector2 pos;
 
     public float size = 64f;
+
+    public float radius;
     public int hp = 10, maxHp = 10;
     public float speed = 180f;
 
@@ -38,7 +40,12 @@ public class Player {
 
     public float critChance = 0.15f; // 15% base chance
 
-    public Player(Vector2 start) {this.pos = start; }
+    public Player(Vector2 pos) {
+        this.pos = pos;
+        this.size = 64f; // if you still use it for sprite drawing
+        this.radius = size * 0.5f; // circle collision radius
+        this.hp = maxHp = 10;
+    }
 
     public void update(float dt, Vector2 mouseWorld) {
         // movement

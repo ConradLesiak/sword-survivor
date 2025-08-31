@@ -5,6 +5,8 @@ import com.badlogic.gdx.math.Vector2;
 public class Enemy {
     public final Vector2 pos;
     public float size = 48f;
+
+    public float radius;
     public int hp = 4;
     public int touchDamage = 1;
     public float speed = 85f;
@@ -14,7 +16,13 @@ public class Enemy {
 
     public float hurtTimer = 0f;
 
-    public Enemy(Vector2 pos) { this.pos = pos; }
+    public Enemy(Vector2 pos) {
+        this.pos = pos;
+        this.size = 48f; // used for sprite
+        this.radius = size * 0.5f; // for collision
+        this.hp = 3;
+        this.touchDamage = 1;
+    }
 
     public void update(float dt, Vector2 target) {
         Vector2 dir = new Vector2(target).sub(pos);
@@ -29,7 +37,10 @@ public class Enemy {
     }
 
     public boolean collidesWithPlayer(Player p) {
-        float r = size/2f + p.size/2f;
-        return pos.dst2(p.pos) <= r*r;
+        float dx = p.pos.x - this.pos.x;
+        float dy = p.pos.y - this.pos.y;
+        float dist2 = dx*dx + dy*dy;
+        float radSum = p.radius + this.radius;
+        return dist2 < radSum * radSum;
     }
 }

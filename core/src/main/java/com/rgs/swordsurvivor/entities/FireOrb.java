@@ -8,7 +8,7 @@ public class FireOrb extends Enemy {
         super(pos);
         this.size *= 5f;
         this.hp = (int)Math.ceil(this.hp * 100.0f);
-        this.touchDamage = Math.max(1, this.touchDamage * 10);
-        this.speed *= 0.2f; // giant, very slow
+        this.touchDamage = Math.max(1, this.touchDamage * 5);
+        this.speed *= 0.1f; // giant, very slow
     }
 }

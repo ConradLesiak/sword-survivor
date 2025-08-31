@@ -8,7 +8,7 @@ public class Obby extends Enemy {
         super(pos);
         this.size *= 4f;                         // 4x bigger
         this.hp = (int)Math.ceil(this.hp * 27f);  // 27x base HP (before Spawner wave scaling)
-        this.touchDamage = Math.max(1, this.touchDamage * 7); // 7x contact damage
+        this.touchDamage = Math.max(1, this.touchDamage * 4); // 7x contact damage
         this.speed *= 0.45f;                     // big & slow
     }
 }
