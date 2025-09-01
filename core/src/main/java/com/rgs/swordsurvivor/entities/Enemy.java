@@ -20,7 +20,7 @@ public class Enemy {
         this.pos = pos;
         this.size = 48f; // used for sprite
         this.radius = size * 0.5f; // for collision
-        this.hp = 3;
+        this.hp = 4;
         this.touchDamage = 1;
     }
 
